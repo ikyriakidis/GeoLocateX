@@ -28,7 +28,7 @@ public class GeoIpBackgroundService : BackgroundService, IGeoIpBackgroundService
     {
         using (var scope = _scopeFactory.CreateScope())
         {
-            var repository = scope.ServiceProvider.GetRequiredService<IGeoLocationRepository>();
+            var repository = scope.ServiceProvider.GetRequiredService<IBatchProcessRepository>();
 
             var batches = await repository.GetBatchProcessByStatusAsync(BatchProcessStatus.Queued, cancellationToken);
 
@@ -62,7 +62,9 @@ public class GeoIpBackgroundService : BackgroundService, IGeoIpBackgroundService
                 {
 
                     var geoIpService = scope.ServiceProvider.GetRequiredService<IGeoIpService>();
-                    var repository = scope.ServiceProvider.GetRequiredService<IGeoLocationRepository>();
+                    var batchProcessItemResponseRepository = scope.ServiceProvider.GetRequiredService<IBatchProcessItemResponseRepository>();
+                    var batchProcessRepository = scope.ServiceProvider.GetRequiredService<IBatchProcessRepository>();
+                    var batchProcessItemsRepository = scope.ServiceProvider.GetRequiredService<IBatchProcessItemRepository>();
 
                     var dateTimeNow = DateTime.UtcNow;
 
@@ -72,7 +74,7 @@ public class GeoIpBackgroundService : BackgroundService, IGeoIpBackgroundService
                     {
                         _logger.LogInformation($"GeoIpBackgroundService is querying: {batchProcessItem.IpAddress}.");
 
-                        var existingIpAddress = await repository.GetBatchProcessResponseByIpAddressAsync(batchProcessItem.IpAddress, cancellationToken);
+                        var existingIpAddress = await batchProcessItemResponseRepository.GetBatchProcessResponseByIpAddressAsync(batchProcessItem.IpAddress, cancellationToken);
 
                         if (existingIpAddress == null) 
                         {
@@ -82,23 +84,23 @@ public class GeoIpBackgroundService : BackgroundService, IGeoIpBackgroundService
                         batchProcessItem.Status = BatchProcessItemStatus.Completed;
                         batchProcessItem.ProcessedAt = dateTimeNow;
 
-                        await repository.UpdateBatchProcessItemAsync(batchProcessItem, cancellationToken);
+                        await batchProcessItemsRepository.UpdateBatchProcessItemAsync(batchProcessItem, cancellationToken);
 
-                        var batchProcessItems = await repository.GetBatchProcessItemsAsync(batchProcessItem.BatchProcessId, cancellationToken);
+                        var batchProcessItems = await batchProcessItemsRepository.GetBatchProcessItemsAsync(batchProcessItem.BatchProcessId, cancellationToken);
 
                         bool anyQueuedOrProcessing = batchProcessItems
                             .Any(item => item.Status == BatchProcessItemStatus.Queued || item.Status == BatchProcessItemStatus.Processing);
 
                         if (!anyQueuedOrProcessing)
                         {
-                            var batchProcess = await repository.GetBatchProcessByIdAsync(batchProcessItem.BatchProcessId, cancellationToken);
+                            var batchProcess = await batchProcessRepository.GetBatchProcessByIdAsync(batchProcessItem.BatchProcessId, cancellationToken);
 
                             batchProcess.Status = BatchProcessStatus.Completed;
                             batchProcess.EndTime = dateTimeNow;
 
-                            await repository.UpdateBatchProcessAsync(batchProcess, cancellationToken);
+                            await batchProcessRepository.UpdateBatchProcessAsync(batchProcess, cancellationToken);
 
-                            await repository.DeleteBatchProcessItemsByBatchIdAsync(batchProcess.Id, cancellationToken);
+                            await batchProcessItemsRepository.DeleteBatchProcessItemsByBatchIdAsync(batchProcess.Id, cancellationToken);
                         }
 
                     }
@@ -108,13 +110,12 @@ public class GeoIpBackgroundService : BackgroundService, IGeoIpBackgroundService
             }
             catch (OperationCanceledException)
             {
-                _logger.LogInformation("GeoIpBackgroundService is stopping due to cancellation.");
+                _logger.LogWarning("GeoIpBackgroundService is stopping due to cancellation.");
                 break;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred in GeoIpBackgroundService.");
-                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
             }
         }
 

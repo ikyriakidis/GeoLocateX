@@ -14,15 +14,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeoLocateX.Domain", "src\GeoLocateX.Domain\GeoLocateX.Domain.csproj", "{C707C192-7FAF-4D97-90BC-45CF99DA136C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeoLocateX.Domain", "src\GeoLocateX.Domain\GeoLocateX.Domain.csproj", "{C707C192-7FAF-4D97-90BC-45CF99DA136C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{47CB926A-F0D1-405F-B7F7-B2D3B0BBC988}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeoLocateX.Api.UnitTests", "tests\GeoLocateX.Api.UnitTests\GeoLocateX.Api.UnitTests.csproj", "{9F740E5B-7F92-4617-99CC-51B0B582B34E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeoLocateX.Api.UnitTests", "tests\GeoLocateX.Api.UnitTests\GeoLocateX.Api.UnitTests.csproj", "{9F740E5B-7F92-4617-99CC-51B0B582B34E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeoLocateX.Services.UnitTests", "tests\GeoLocateX.Services.UnitTests\GeoLocateX.Services.UnitTests.csproj", "{7FCE16D1-87D8-4034-8781-47602CDD1C83}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeoLocateX.Services.UnitTests", "tests\GeoLocateX.Services.UnitTests\GeoLocateX.Services.UnitTests.csproj", "{7FCE16D1-87D8-4034-8781-47602CDD1C83}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{4E57388D-B377-4C2E-8EB2-098C30ABE6C1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeoLocateX.Data.UnitTests", "tests\GeoLocateX.Data.UnitTests\GeoLocateX.Data.UnitTests.csproj", "{730FC689-B277-4E04-B4FF-24CAEF7679FD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -54,6 +56,10 @@ Global
 		{7FCE16D1-87D8-4034-8781-47602CDD1C83}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7FCE16D1-87D8-4034-8781-47602CDD1C83}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7FCE16D1-87D8-4034-8781-47602CDD1C83}.Release|Any CPU.Build.0 = Release|Any CPU
+		{730FC689-B277-4E04-B4FF-24CAEF7679FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{730FC689-B277-4E04-B4FF-24CAEF7679FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{730FC689-B277-4E04-B4FF-24CAEF7679FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{730FC689-B277-4E04-B4FF-24CAEF7679FD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -65,6 +71,7 @@ Global
 		{C707C192-7FAF-4D97-90BC-45CF99DA136C} = {4E57388D-B377-4C2E-8EB2-098C30ABE6C1}
 		{9F740E5B-7F92-4617-99CC-51B0B582B34E} = {47CB926A-F0D1-405F-B7F7-B2D3B0BBC988}
 		{7FCE16D1-87D8-4034-8781-47602CDD1C83} = {47CB926A-F0D1-405F-B7F7-B2D3B0BBC988}
+		{730FC689-B277-4E04-B4FF-24CAEF7679FD} = {47CB926A-F0D1-405F-B7F7-B2D3B0BBC988}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E0AF7BF9-29A6-47F5-9C85-E5B45350B923}

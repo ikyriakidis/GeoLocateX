@@ -2,6 +2,7 @@ using GeoLocateX.Data;
 using GeoLocateX.Domain.Configuration;
 using GeoLocateX.Domain.Interfaces;
 using GeoLocateX.Services;
+using GeoLocateX.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -37,9 +38,15 @@ builder.Services.AddHealthChecks()
 
 builder.Services.AddHttpClient<IGeoIpService, GeoIpService>();
 
+builder.Services.AddSingleton<IIPBaseClient, IPBaseClient>();
 builder.Services.AddSingleton<IQueueService, QueueService>();
 builder.Services.AddScoped<IGeoIpService, GeoIpService>();
-builder.Services.AddScoped<IGeoLocationRepository, GeoLocationRepository>();
+
+builder.Services.AddScoped<IBatchProcessRepository, BatchProcessRepository>();
+builder.Services.AddScoped<IBatchProcessItemRepository, BatchProcessItemRepository>();
+builder.Services.AddScoped<IBatchProcessItemResponseRepository, BatchProcessItemResponseRepository>();
+
+
 builder.Services.AddScoped<GeoIpBackgroundService>();
 builder.Services.AddHostedService(provider =>
 {

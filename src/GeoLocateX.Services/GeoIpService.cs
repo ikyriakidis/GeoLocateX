@@ -1,46 +1,39 @@
-﻿using System.Text.Json;
-using GeoLocateX.Domain.Entities;
-using Microsoft.Extensions.Logging;
-using System.Net.Http.Json;
-using Microsoft.Extensions.Options;
+﻿using GeoLocateX.Domain.Entities;
 using GeoLocateX.Data;
 using GeoLocateX.Domain.Interfaces;
 using GeoLocateX.Domain.Models;
-using GeoLocateX.Domain.Configuration;
 using GeoLocateX.Data.Entities;
+using GeoLocateX.Services.Interfaces;
 
 namespace GeoLocateX.Services;
 
 public class GeoIpService : IGeoIpService
 {
-    private readonly ILogger<GeoIpService> _logger;
-    private readonly HttpClient _httpClient;
-    private readonly IpBaseConfig _ipBaseConfig;
-    private readonly IGeoLocationRepository _repository;
+    private readonly IBatchProcessItemRepository _batchProcessItemRepository;
+    private readonly IBatchProcessRepository _batchProcessRepository;
+    private readonly IBatchProcessItemResponseRepository _batchProcessItemResponseRepository;
     private readonly IQueueService _queueService;
-    
+    private readonly IIPBaseClient _iPBaseClient;
+
     public GeoIpService(
-        IHttpClientFactory httpClientFactory,
-        ILogger<GeoIpService> logger,
-        IOptions<IpBaseConfig> ipBaseConfig,
-        IGeoLocationRepository repository,
-        IQueueService queueService)
+        IBatchProcessItemRepository batchProcessItemRepository,
+        IBatchProcessRepository batchProcessRepository,
+        IBatchProcessItemResponseRepository batchProcessItemResponseRepository,
+        IQueueService queueService,
+        IIPBaseClient iPBaseClient)
     {
-        _logger = logger;
-        _httpClient = httpClientFactory.CreateClient("GeoIpClient");
-        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _batchProcessItemRepository = batchProcessItemRepository ?? throw new ArgumentNullException(nameof(batchProcessItemRepository));
+        _batchProcessRepository = batchProcessRepository ?? throw new ArgumentNullException(nameof(batchProcessRepository));
+        _batchProcessItemResponseRepository = batchProcessItemResponseRepository ?? throw new ArgumentNullException(nameof(batchProcessItemResponseRepository));
         _queueService = queueService ?? throw new ArgumentNullException(nameof(queueService));
-        _ipBaseConfig = ipBaseConfig.Value ?? throw new ArgumentException(nameof(ipBaseConfig));
+        _iPBaseClient = iPBaseClient ?? throw new ArgumentNullException(nameof(iPBaseClient));
     }
 
     public async Task<GeoIpResponse> GetGeoIPAsync(string ipAddress, CancellationToken cancellationToken)
     {
         var geoIpResponse = new GeoIpResponse();
 
-        var apiKey = _ipBaseConfig.ApiKey;
-        var baseAddress = _ipBaseConfig.BaseAddress;
-
-        var existingIpAddress = await _repository.GetBatchProcessResponseByIpAddressAsync(ipAddress, cancellationToken);
+        var existingIpAddress = await _batchProcessItemResponseRepository.GetBatchProcessResponseByIpAddressAsync(ipAddress, cancellationToken);
 
         if (existingIpAddress != null)
         {
@@ -53,7 +46,7 @@ public class GeoIpService : IGeoIpService
         }
         else 
         {
-            geoIpResponse = await Fetch(ipAddress, cancellationToken);
+            geoIpResponse = await _iPBaseClient.Fetch(ipAddress, cancellationToken);
 
             var batchProcessItemResponse = new BatchProcessItemResponse();
             batchProcessItemResponse.Id = Guid.NewGuid();
@@ -65,7 +58,7 @@ public class GeoIpService : IGeoIpService
             batchProcessItemResponse.Timezones = geoIpResponse.TimeZones ?? null;
             batchProcessItemResponse.CreatedAt = DateTime.UtcNow;
 
-            await _repository.AddBatchProcessResponseAsync(batchProcessItemResponse, cancellationToken);
+            await _batchProcessItemResponseRepository.AddBatchProcessResponseAsync(batchProcessItemResponse, cancellationToken);
         }
         return geoIpResponse;
     }
@@ -76,7 +69,7 @@ public class GeoIpService : IGeoIpService
 
         var batchProcessItems = new List<BatchProcessItem>();
 
-        var existingIpAddresses = await _repository.GetBatchProcessItemResponseByIpsAsync(ipAddresses, cancellationToken);
+        var existingIpAddresses = await _batchProcessItemResponseRepository.GetBatchProcessItemResponseByIpsAsync(ipAddresses, cancellationToken);
         var filteredIpAddresses = ipAddresses.Where(x => !existingIpAddresses.Any(y => y.IpAddress == x));
 
         foreach (var ipAddress in filteredIpAddresses)
@@ -104,14 +97,14 @@ public class GeoIpService : IGeoIpService
             EndTime = endTime,
         };
         
-        await _repository.AddBatchProcessAsync(batchProcess, cancellationToken);
+        await _batchProcessRepository.AddBatchProcessAsync(batchProcess, cancellationToken);
 
         return $"api/geoip/status/{batchProcess.Id}";
     }
 
     public async Task<string> GetBatchStatus(Guid batchId, CancellationToken cancellationToken)
     {
-        var batch = await _repository.GetBatchProcessByIdAsync(batchId, cancellationToken);
+        var batch = await _batchProcessRepository.GetBatchProcessByIdAsync(batchId, cancellationToken);
 
         if (batch == null) 
         {
@@ -123,7 +116,7 @@ public class GeoIpService : IGeoIpService
             return "Completed";
         }
 
-        var batchProcessItems = await _repository.GetBatchProcessItemsAsync(batchId, cancellationToken);
+        var batchProcessItems = await _batchProcessItemRepository.GetBatchProcessItemsAsync(batchId, cancellationToken);
 
         var incompleteCount = batchProcessItems
             .Count(item => 
@@ -153,39 +146,5 @@ public class GeoIpService : IGeoIpService
         var estimatedTimeSpan = TimeSpan.FromSeconds(estimatedRemainingTime);
 
         return $"Estimated completion time in seconds: {estimatedTimeSpan}";
-    }
-
-    private async Task<GeoIpResponse> Fetch(string ipAddress, CancellationToken cancellationToken)
-    {
-        var geoIpResponse = new GeoIpResponse();
-
-        var apiKey = _ipBaseConfig.ApiKey;
-        var baseAddress = _ipBaseConfig.BaseAddress;
-
-        using (var response = await _httpClient.GetAsync($"{baseAddress}/info?ip={ipAddress}&apikey={apiKey}", cancellationToken))
-        {
-            response.EnsureSuccessStatusCode();
-
-            var responseJson = await response.Content.ReadFromJsonAsync<IPBaseResponse<GeoIP>>(
-                new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
-                });
-
-            var responseData = responseJson?.Data;
-
-            if (responseData != null)
-            {
-                geoIpResponse.Latitude = responseData.Location.Latitude;
-                geoIpResponse.Longitude = responseData.Location.Longitude;
-                geoIpResponse.CountryName = responseData.Location.Country.Name;
-                geoIpResponse.CountryCode = responseData.Location.Country.Alpha3;
-                geoIpResponse.Ip = responseData.Ip;
-                geoIpResponse.TimeZones = responseData?.Location?.Country?.Timezones != null
-                                          ? string.Join(",", responseData.Location.Country.Timezones)
-                                          : string.Empty;
-            }
-            return geoIpResponse;
-        }
     }
 }

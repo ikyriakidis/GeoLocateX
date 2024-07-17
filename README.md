@@ -1,5 +1,17 @@
 # Natech Dev
 
+## Prerequisites
+
+* SQL Server
+* .NET SDK 8
+* Entity Framework Core tools
+
+## Install Entity Framework Core tools
+
+```bash
+dotnet tool install --global dotnet-ef
+```
+
 ## Generate migrations scripts
 
 ```bash

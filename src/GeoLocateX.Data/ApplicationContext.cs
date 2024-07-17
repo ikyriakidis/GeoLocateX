@@ -7,10 +7,18 @@ namespace GeoLocateX.Data;
 
 public class ApplicationContext : DbContext
 {
-    public DbSet<BatchProcess> BatchProcesses { get; set; }
-    public DbSet<BatchProcessItem> BatchProcessItems { get; set; }
-    public DbSet<BatchProcessItemResponse> BatchProcessItemResponses { get; set; }
+    //public DbSet<BatchProcess> BatchProcesses { get; set; }
+    //public DbSet<BatchProcessItem> BatchProcessItems { get; set; }
+    //public DbSet<BatchProcessItemResponse> BatchProcessItemResponses { get; set; }
     public ApplicationContext(DbContextOptions<ApplicationContext> options) : base(options) { }
+
+    public virtual DbSet<BatchProcess> BatchProcesses { get; set; }
+    public virtual DbSet<BatchProcessItem> BatchProcessItems { get; set; }
+    public virtual DbSet<BatchProcessItemResponse> BatchProcessItemResponses { get; set; }
+
+
+
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
